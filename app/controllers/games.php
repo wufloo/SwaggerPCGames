@@ -43,22 +43,37 @@ class games extends Controller
         // Convert json encoded request body into object
         $request = json_decode(file_get_contents('php://input'));
 
-        // Convert object to array
-        // Todo refaktoori j2rgnev kood funktsiooniks mis v6rdleb requestis olevaid v2ljanimesid andmebaasis olevate v2ljanimedega ja tagastab ainult yhised
-        $set = [
-            'name' => $request->name,
-            'releaseDate' => $request->releaseDate,
-            'description' => $request->description,
-            'genre' => $request->genre,
-            'characters' => $request->characters
-        ];
+
+        // Validate releaseDate
+        if (!empty($request->releaseDate) && !valid_date($request->releaseDate)) {
+            output_error(405, "ReleaseDate is not valid");
+        }
+
+
+        // Define fields allowed for updating
+        $allowed_fields = array_flip([
+            'name',
+            'releaseDate',
+            'description',
+            'genre',
+            'characters'
+        ]);
+
+
+        // Filter request fields
+        $data = array_intersect_key((array)$request, $allowed_fields);
+
 
         // Update database
-        $query = $this->db->update('game')->set($set)->where('id', $request->id)->execute();
+        $query = $this->db->update('game')->set($data)->where('id', $request->id)->execute();
 
 
+        // Verify that query succeeded
+        if ($query === false) {
+            output_error(500, "Server error");
+        }
 
-        $this->output((array)$query);
+        exit();
     }
 
 
